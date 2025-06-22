@@ -18,9 +18,9 @@ def train_model():
     y = df["Outcome"]
     model = RandomForestClassifier()
     model.fit(X, y)
-    return model
+    return model, X.columns  # return column names too
 
-model = train_model()
+model, feature_names = train_model()
 
 # User inputs
 age = st.slider("వయస్సు (Age)", 18, 100)
@@ -34,7 +34,9 @@ dpf = st.number_input("కుటుంబ చరిత్ర (DPF)", 0.0, 2.5)
 
 # Predict
 if st.button("రిస్క్ తెలుసుకోండి"):
-    data = [[pregnancies, glucose, bp, skin_thickness, insulin, bmi, dpf, age]]
+    # Convert list to DataFrame with column names
+    data = pd.DataFrame([[pregnancies, glucose, bp, skin_thickness, insulin, bmi, dpf, age]], columns=feature_names)
+
     prediction = model.predict(data)[0]
     proba = model.predict_proba(data)[0][prediction]
     result = "అధిక రిస్క్" if prediction == 1 else "తక్కువ రిస్క్"
@@ -43,7 +45,9 @@ if st.button("రిస్క్ తెలుసుకోండి"):
     # SHAP Explanation
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(data)
+
     st.set_option('deprecation.showPyplotGlobalUse', False)
     shap.initjs()
+    st.write("📊 డయాబెటిస్ రిస్క్ వివరాలు (SHAP):")
     shap.force_plot(explainer.expected_value[1], shap_values[1], data, matplotlib=True)
     st.pyplot(bbox_inches='tight')
