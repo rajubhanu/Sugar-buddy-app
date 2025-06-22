@@ -1,17 +1,28 @@
 import streamlit as st
 import pandas as pd
-import pickle
 import shap
-import numpy as np
 import matplotlib.pyplot as plt
-
-# Load model
-model = pickle.load(open("diabetes_model.pkl", "rb"))
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 
 st.set_page_config(page_title="SugAR Buddy - డయాబెటిస్ చెక్", layout="centered")
 st.title("SugAR Buddy - డయాబెటిస్ రిస్క్ చెకర్")
 
-# User input in Telugu
+# 🧠 Train model inside the app
+@st.cache_resource
+def train_model():
+    url = "https://raw.githubusercontent.com/plotly/datasets/master/diabetes.csv"
+    df = pd.read_csv(url)
+    X = df.drop("Outcome", axis=1)
+    y = df["Outcome"]
+    model = RandomForestClassifier()
+    model.fit(X, y)
+    return model
+
+model = train_model()
+
+# User inputs
 age = st.slider("వయస్సు (Age)", 18, 100)
 bmi = st.number_input("బిఎమ్‌ఐ (BMI)", 10.0, 50.0, step=0.1)
 glucose = st.number_input("గ్లూకోజ్ లెవల్", 50, 200)
@@ -26,10 +37,10 @@ if st.button("రిస్క్ తెలుసుకోండి"):
     data = [[pregnancies, glucose, bp, skin_thickness, insulin, bmi, dpf, age]]
     prediction = model.predict(data)[0]
     proba = model.predict_proba(data)[0][prediction]
-
     result = "అధిక రిస్క్" if prediction == 1 else "తక్కువ రిస్క్"
     st.subheader(f"🩺 ఫలితం: {result} ({proba*100:.2f}%)")
 
+    # SHAP Explanation
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(data)
     st.set_option('deprecation.showPyplotGlobalUse', False)
